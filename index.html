@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Division Control Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0b0d;
+    --bg-raised: #141416;
+    --bg-card: #17171a;
+    --line: #2a2a2e;
+    --line-soft: #212124;
+    --text: #f2f2f0;
+    --text-dim: #9b9ba1;
+    --text-faint: #67676d;
+    --red: #e5484d;
+    --red-dim: #3a1f20;
+    --yellow: #f2b705;
+    --yellow-dim: #3a3016;
+    --green: #35b350;
+    --green-dim: #16321d;
+    --white: #f2f2f0;
+    --track: repeating-linear-gradient(90deg, var(--line) 0 14px, transparent 14px 28px);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:inherit; margin:0; padding:0;}
+  html{height:100%; scroll-padding-top: env(safe-area-inset-top, 0px);}
+  body{
+    height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--yellow); color:#141416; }
+
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- Layout shell ---------- */
+  .shell{ display:flex; min-height:100vh; min-height:100%; }
+
+  .sidebar{
+    width: 236px;
+    flex-shrink:0;
+    background: var(--bg-raised);
+    border-right: 1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    position: sticky;
+    top:0;
+    height: 100vh;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .brand{
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand .mark{
+    width:34px; height:34px; border-radius:4px;
+    background: linear-gradient(135deg, var(--red) 0%, var(--red) 48%, var(--yellow) 52%, var(--yellow) 100%);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono'; font-weight:600; font-size:14px; color:#0b0b0d;
+    margin-bottom:12px;
+  }
+  .brand h1{ font-size:15.5px; font-weight:600; letter-spacing:.2px; line-height:1.3; }
+  .brand p{ font-size:11.5px; color:var(--text-faint); margin-top:3px; font-family:'IBM Plex Mono'; }
+
+  nav{ padding: 14px 12px; flex:1; }
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding: 10px 12px;
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    font-weight:500;
+    cursor:pointer;
+    border-left: 2px solid transparent;
+    transition: background .12s ease, color .12s ease;
+    user-select:none;
+  }
+  .nav-item .dot{ width:6px; height:6px; border-radius:50%; background: var(--text-faint); flex-shrink:0; }
+  .nav-item:hover{ background: rgba(255,255,255,0.03); color: var(--text); }
+  .nav-item.active{
+    background: rgba(229,72,77,0.09);
+    color: var(--white);
+    border-left-color: var(--red);
+  }
+  .nav-item.active .dot{ background: var(--red); }
+  .nav-count{
+    margin-left:auto; font-family:'IBM Plex Mono'; font-size:10.5px;
+    color: var(--text-faint); background: rgba(255,255,255,0.05);
+    padding:1px 6px; border-radius: 3px;
+  }
+
+  .sidebar-foot{
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--text-faint);
+  }
+  .sidebar-foot .live{ display:flex; align-items:center; gap:7px; margin-bottom:6px; color: var(--green); font-family:'IBM Plex Mono'; font-size:11px;}
+  .live .blip{ width:7px; height:7px; border-radius:50%; background: var(--green); box-shadow:0 0 0 3px rgba(53,179,80,.18); animation: pulse 2s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .main{ flex:1; min-width:0; }
+  .topbar{
+    position: sticky; top:0; z-index:5;
+    background: rgba(11,11,13,0.9); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 30px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+  }
+  .topbar h2{ font-size: 18px; font-weight:600; }
+  .topbar .sub{ font-size:12px; color: var(--text-faint); font-family:'IBM Plex Mono'; margin-top:2px;}
+  .topbar-right{ display:flex; align-items:center; gap:16px; }
+  .section-select{
+    background: var(--bg-card); border:1px solid var(--line); color: var(--text);
+    font-family:'IBM Plex Mono'; font-size:12px; padding:8px 10px; border-radius:5px;
+  }
+  .badge-user{
+    display:flex; align-items:center; gap:9px; padding: 6px 12px 6px 6px;
+    border:1px solid var(--line); border-radius: 20px; font-size:12.5px;
+  }
+  .badge-user .av{ width:24px; height:24px; border-radius:50%; background:var(--yellow); color:#141416; font-family:'IBM Plex Mono'; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center;}
+
+  .content{ padding: 26px 30px 60px; max-width: 1400px; }
+  .view{ display:none; animation: fade .18s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{opacity:0} to{opacity:1} }
+
+  /* ---------- Generic elements ---------- */
+  h3.block-title{ font-size:13px; font-weight:600; color: var(--text-dim); text-transform: uppercase; letter-spacing:.4px; margin-bottom:14px; }
+  .grid{ display:grid; gap:16px; }
+  .grid-4{ grid-template-columns: repeat(4, 1fr); }
+  .grid-3{ grid-template-columns: repeat(3, 1fr); }
+  .grid-2{ grid-template-columns: 1.4fr 1fr; }
+
+  .card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 18px;
+  }
+  .card + .card{ margin-top:16px; }
+
+  .stat-card{ position:relative; overflow:hidden; height:190px; min-height:190px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center; }
+  .grid-4 > .stat-card + .stat-card{ margin-top:0 !important; }
+  .stat-card .top-line{ position:absolute; top:0; left:0; right:0; height:2px; }
+  .stat-card .label{ font-size:12px; color: var(--text-faint); font-family:'IBM Plex Mono'; }
+  .stat-card .value{ font-size: 30px; font-weight:600; margin-top:8px; font-variant-numeric: tabular-nums; }
+  .stat-card .delta{ font-size:11.5px; margin-top:6px; color: var(--text-dim); }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:'IBM Plex Mono'; font-size:11px; font-weight:600;
+    padding: 3px 9px; border-radius: 3px; letter-spacing:.3px; white-space:nowrap;
+  }
+  .badge::before{ content:''; width:6px; height:6px; border-radius:50%; }
+  .badge-green{ background: var(--green-dim); color: var(--green); }
+  .badge-green::before{ background: var(--green); }
+  .badge-red{ background: var(--red-dim); color: var(--red); }
+  .badge-red::before{ background: var(--red); }
+  .badge-yellow{ background: var(--yellow-dim); color: var(--yellow); }
+  .badge-yellow::before{ background: var(--yellow); }
+  .badge-neutral{ background: rgba(255,255,255,0.06); color: var(--text-dim); }
+  .badge-neutral::before{ background: var(--text-faint); }
+
+  table{ width:100%; border-collapse: collapse; font-size:13px; }
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.5px; color: var(--text-faint); font-weight:500;
+    padding: 0 12px 10px; border-bottom: 1px solid var(--line);
+  }
+  tbody td{ padding: 13px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  tbody tr{ cursor:pointer; transition: background .1s ease; }
+  tbody tr:hover{ background: rgba(255,255,255,0.025); }
+  tbody tr.selected{ background: rgba(229,72,77,0.07); }
+  .id-cell{ font-family:'IBM Plex Mono'; color: var(--text-dim); }
+
+  .btn{
+    font-family:'IBM Plex Sans'; font-size:12.5px; font-weight:600;
+    padding: 8px 14px; border-radius: 5px; border:1px solid var(--line);
+    background: transparent; color: var(--text); cursor:pointer;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.04); }
+  .btn-primary{ background: var(--red); border-color: var(--red); color:#fff; }
+  .btn-primary:hover{ background:#d33a3f; }
+  .btn-ghost{ font-size:12px; padding:6px 10px; color: var(--text-dim); }
+  .btn-sm{ padding:6px 11px; font-size:12px; }
+
+  .filters{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .filters select, .filters input{
+    background: var(--bg-card); border:1px solid var(--line); color:var(--text);
+    padding: 8px 11px; border-radius: 5px; font-size:12.5px; font-family:'IBM Plex Sans';
+  }
+  .filters input{ min-width:220px; }
+
+  /* Junction / route visual */
+  .route-line{
+    display:flex; align-items:center; gap:0; margin: 18px 0 6px;
+  }
+  .route-node{ display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:120px; }
+  .route-node .pin{ width:14px; height:14px; border-radius:50%; border:2px solid var(--white); background: var(--bg-card); margin-bottom:8px; }
+  .route-node.origin .pin{ border-color: var(--green); background: var(--green); }
+  .route-node.dest .pin{ border-color: var(--red); background: var(--red); }
+  .route-node .name{ font-size:13px; font-weight:600; text-align:center; }
+  .route-node .kind{ font-size:10.5px; color: var(--text-faint); font-family:'IBM Plex Mono'; margin-top:2px; }
+  .route-track{ flex:1; height:2px; background: var(--track); position:relative; margin: 0 -2px; top:-14px; }
+  .route-track .marker{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%);
+    background: var(--yellow); color:#141416; font-family:'IBM Plex Mono'; font-weight:700;
+    font-size:10.5px; padding:2px 8px; border-radius: 10px; white-space:nowrap;
+  }
+
+  .kv-row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+  .kv-row:last-child{ border-bottom:none; }
+  .kv-row .k{ color: var(--text-faint); font-family:'IBM Plex Mono'; font-size:11.5px; }
+  .kv-row .v{ font-weight:500; text-align:right; }
+
+  /* AI Suggested Work cards */
+  .ai-card{
+    background: var(--bg-card); border:1px solid var(--line); border-left: 3px solid var(--text-faint);
+    border-radius: 7px; padding: 16px 18px; display:flex; gap:16px; align-items:flex-start;
+  }
+  .ai-card + .ai-card{ margin-top:12px; }
+  .ai-card.priority-critical{ border-left-color: var(--red); }
+  .ai-card.priority-high{ border-left-color: var(--yellow); }
+  .ai-card.priority-medium{ border-left-color: var(--green); }
+  .ai-card .ai-icon{
+    width:36px; height:36px; border-radius:6px; background: rgba(255,255,255,0.04);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px;
+  }
+  .ai-card .ai-body{ flex:1; min-width:0; }
+  .ai-card .ai-head{ display:flex; align-items:center; gap:10px; margin-bottom:5px; flex-wrap:wrap; }
+  .ai-card .ai-head strong{ font-size:14px; font-weight:600; }
+  .ai-card p.desc{ font-size:12.5px; color: var(--text-dim); line-height:1.55; margin: 6px 0 10px; max-width: 620px; }
+  .ai-meta{ display:flex; gap:16px; flex-wrap:wrap; }
+  .ai-meta span{ font-size:11.5px; color: var(--text-faint); font-family:'IBM Plex Mono'; }
+  .ai-meta span b{ color: var(--text-dim); font-weight:500; }
+  .ai-actions{ flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+
+  /* Detail drawer */
+  .detail-panel{ position: sticky; top: 86px; }
+  .detail-empty{ color: var(--text-faint); font-size:13px; text-align:center; padding: 40px 10px; }
+  .detail-empty .icn{ font-size:26px; display:block; margin-bottom:10px; }
+
+  .approval-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:6px;}
+  .approval-box{ border:1px solid var(--line); border-radius:6px; padding:14px; text-align:center; }
+  .approval-box .who{ font-size:11px; color: var(--text-faint); font-family:'IBM Plex Mono'; margin-bottom:10px; text-transform:uppercase; letter-spacing:.4px;}
+
+  /* Communication */
+  .comm-shell{ display:grid; grid-template-columns: 280px 1fr; gap:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; height: 560px; }
+  .worker-list{ background: var(--bg-card); border-right:1px solid var(--line); overflow-y:auto; }
+  .worker-search{ padding:12px; border-bottom:1px solid var(--line); }
+  .worker-search input{ width:100%; background: var(--bg-raised); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:5px; font-size:12.5px; }
+  .worker-item{ display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; border-bottom:1px solid var(--line-soft); }
+  .worker-item:hover{ background: rgba(255,255,255,0.03); }
+  .worker-item.active{ background: rgba(229,72,77,0.09); border-left:2px solid var(--red); }
+  .worker-item .wav{ width:32px; height:32px; border-radius:50%; background: var(--bg-raised); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:12px; flex-shrink:0; position:relative;}
+  .worker-item .wav .stat-dot{ position:absolute; bottom:-1px; right:-1px; width:9px; height:9px; border-radius:50%; border:2px solid var(--bg-card); }
+  .worker-item .wname{ font-size:13px; font-weight:500; }
+  .worker-item .wrole{ font-size:11px; color: var(--text-faint); }
+
+  .chat-col{ display:flex; flex-direction:column; background: var(--bg); }
+  .chat-head{ padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+  .chat-head .name{ font-size:14px; font-weight:600; }
+  .chat-head .role{ font-size:11.5px; color: var(--text-faint); font-family:'IBM Plex Mono'; }
+  .chat-body{ flex:1; overflow-y:auto; padding: 18px; display:flex; flex-direction:column; gap:12px; }
+  .msg{ max-width:62%; padding: 9px 13px; border-radius: 9px; font-size:13px; line-height:1.5; }
+  .msg .t{ font-size:10px; color: rgba(255,255,255,0.45); margin-top:5px; font-family:'IBM Plex Mono'; }
+  .msg.in{ align-self:flex-start; background: var(--bg-card); border:1px solid var(--line); border-bottom-left-radius:2px; }
+  .msg.out{ align-self:flex-end; background: var(--red); color:#fff; border-bottom-right-radius:2px; }
+  .msg.out .t{ color: rgba(255,255,255,0.7); }
+  .chat-input{ padding:14px 18px; border-top:1px solid var(--line); display:flex; gap:10px; }
+  .chat-input input{ flex:1; background: var(--bg-card); border:1px solid var(--line); color:var(--text); padding:11px 14px; border-radius:20px; font-size:13px; }
+  .chat-input button{ width:40px; height:40px; border-radius:50%; background: var(--red); border:none; color:#fff; cursor:pointer; font-size:15px; }
+
+  .flex-between{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+
+  @media (max-width: 1100px){
+    .grid-4{ grid-template-columns: repeat(2,1fr);}
+    .grid-3{ grid-template-columns: repeat(2,1fr);}
+    .grid-2{ grid-template-columns: 1fr;}
+    .approval-grid{ grid-template-columns: 1fr;}
+  }
+  @media (max-width: 720px){
+    .sidebar{ display:none; }
+    .content{ padding: 20px 16px 50px; }
+    .grid-4, .grid-3{ grid-template-columns: 1fr; }
+    .comm-shell{ grid-template-columns: 1fr; height:auto; }
+    .worker-list{ max-height:180px; }
+  }
+
+  .division-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .division-label{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono';text-transform:uppercase}
+  .filter-note{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono'}
+  .ai-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .ai-toolbar input{flex:1;min-width:240px;background:var(--bg-card);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:5px;font-size:12.5px}
+  .ai-toolbar select{background:var(--bg-card);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:5px;font-size:12.5px}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:30;display:none;align-items:center;justify-content:center;padding:18px}
+  .modal-backdrop.open{display:flex}
+  .request-modal{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--bg-raised);border:1px solid var(--line);border-radius:8px}
+  .request-modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .request-modal-head h3{font-size:15px}.request-modal-head p{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono';margin-top:4px}
+  .request-form{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .request-form .full{grid-column:1/-1}
+  .request-form label{display:block;font-size:10.5px;color:var(--text-faint);font-family:'IBM Plex Mono';text-transform:uppercase;margin-bottom:6px}
+  .request-form input,.request-form select,.request-form textarea{width:100%;background:var(--bg-card);border:1px solid var(--line);color:var(--text);padding:10px 11px;border-radius:5px;font-size:12.5px}
+  .request-form textarea{min-height:80px;resize:vertical}
+  .reschedule-box{border:1px solid var(--line);border-radius:6px;padding:14px;grid-column:1/-1;background:rgba(255,255,255,.02)}
+  .reschedule-head{display:flex;align-items:center;justify-content:space-between}
+  .reschedule-head strong{font-size:12px}.reschedule-head span{font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono'}
+  .reschedule-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .request-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line)}
+  .toast{position:fixed;right:20px;bottom:20px;background:var(--bg-raised);border:1px solid var(--green);color:var(--green);padding:12px 15px;border-radius:6px;font-size:12px;z-index:50;display:none}
+  .toast.show{display:block}
+  .hidden-row{display:none!important}
+  @media(max-width:720px){
+    .request-form{grid-template-columns:1fr}.request-form .full,.reschedule-box{grid-column:auto}
+    .reschedule-fields{grid-template-columns:1fr}.request-modal-foot{flex-direction:column}.request-modal-foot .btn{width:100%}
+    .ai-toolbar input{min-width:100%}
+  }
+
+
+  /* Final responsive polish */
+  .ai-filter-bar{width:100%}
+  .ai-filter-bar input{min-width:280px}
+  .ai-filter-bar select{min-width:145px}
+  .ai-card{min-width:0}
+  @media(max-width:900px){
+    .grid-4{grid-template-columns:repeat(2,1fr)}
+    .grid-4 > .stat-card + .stat-card{margin-top:0 !important}
+  }
+  @media(max-width:640px){
+    .grid-4{grid-template-columns:1fr 1fr;gap:10px}
+    .stat-card{height:150px;min-height:150px;padding:14px}
+    .stat-card .label{font-size:10px}
+    .stat-card .value{font-size:25px}
+    .stat-card .delta{font-size:10px}
+    .ai-filter-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .ai-filter-bar input{grid-column:1/-1;min-width:0;width:100%}
+    .ai-filter-bar select{min-width:0;width:100%}
+    .ai-filter-bar .filter-note{grid-column:1/-1}
+    .ai-card{display:flex;flex-direction:column;padding:14px;gap:10px}
+    .ai-card .ai-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .ai-card .ai-actions .btn{width:100%}
+    .ai-card .ai-meta{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  }
+  @media(max-width:390px){
+    .grid-4{grid-template-columns:1fr}
+    .stat-card{height:132px;min-height:132px}
+    .ai-filter-bar{grid-template-columns:1fr}
+    .ai-filter-bar input,.ai-filter-bar .filter-note{grid-column:auto}
+    .ai-filter-bar select{width:100%}
+    .ai-card .ai-actions{grid-template-columns:1fr}
+  }
+
+
+  /* Priority filter + mobile final polish */
+  .ai-filter-bar select,
+  .ai-filter-bar input{
+    box-sizing:border-box;
+    min-height:44px;
+  }
+  .ai-filter-bar select{
+    cursor:pointer;
+  }
+  .ai-card.hidden-row{
+    display:none !important;
+  }
+  @media(max-width:768px){
+    .main-content{padding:16px 12px 90px !important}
+    .topbar{padding:12px !important}
+    .grid-4{
+      grid-template-columns:1fr 1fr !important;
+      gap:10px !important;
+    }
+    .grid-4 > .stat-card{
+      width:100% !important;
+      margin:0 !important;
+      min-height:142px !important;
+      height:142px !important;
+    }
+    .stat-card .value{font-size:26px !important}
+    .stat-card .label{font-size:10px !important;letter-spacing:.04em}
+    .stat-card .delta{font-size:10px !important}
+    .ai-filter-bar{
+      display:flex !important;
+      flex-direction:column !important;
+      gap:9px !important;
+      width:100% !important;
+      margin-bottom:14px !important;
+    }
+    .ai-filter-bar input,
+    .ai-filter-bar select{
+      width:100% !important;
+      min-width:0 !important;
+      min-height:46px !important;
+      font-size:14px !important;
+    }
+    .ai-filter-bar .filter-note{
+      width:100%;
+      text-align:left;
+      padding:2px 1px;
+    }
+    .ai-card{
+      width:100% !important;
+      box-sizing:border-box !important;
+      margin-bottom:10px !important;
+      padding:14px !important;
+      overflow:hidden !important;
+    }
+    .ai-card .ai-head{
+      flex-wrap:wrap !important;
+      gap:7px !important;
+    }
+    .ai-card .ai-head strong{
+      font-size:15px !important;
+      line-height:1.35 !important;
+    }
+    .ai-card p{
+      font-size:13px !important;
+      line-height:1.55 !important;
+    }
+    .ai-card .ai-meta{
+      display:grid !important;
+      grid-template-columns:1fr 1fr !important;
+      gap:7px !important;
+      overflow:hidden !important;
+    }
+    .ai-card .ai-meta > *{
+      min-width:0 !important;
+      overflow-wrap:anywhere !important;
+    }
+    .ai-card .ai-actions{
+      display:grid !important;
+      grid-template-columns:1fr 1fr !important;
+      gap:8px !important;
+      width:100% !important;
+    }
+    .ai-card .ai-actions .btn{
+      width:100% !important;
+      min-height:44px !important;
+      font-size:12px !important;
+    }
+  }
+  @media(max-width:420px){
+    .grid-4{grid-template-columns:1fr !important}
+    .grid-4 > .stat-card{
+      min-height:120px !important;
+      height:120px !important;
+    }
+    .ai-card .ai-meta{grid-template-columns:1fr !important}
+    .ai-card .ai-actions{grid-template-columns:1fr !important}
+  }
+
+
+  .page-filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}
+  .page-filter-bar select,.page-filter-bar input{
+    min-height:42px;background:var(--bg-card);border:1px solid var(--line);
+    color:var(--text);padding:9px 12px;border-radius:5px;font-size:12.5px;
+  }
+  .page-filter-bar select{min-width:165px}
+  .filter-hidden{display:none !important}
+  @media(max-width:640px){
+    .page-filter-bar{display:grid;grid-template-columns:1fr;width:100%;gap:8px}
+    .page-filter-bar select,.page-filter-bar input{width:100%;min-width:0;min-height:46px;font-size:14px}
+  }
+
+
+/* FINAL MOBILE LAYOUT */
+@media (max-width:768px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .app,.shell,.main,.main-content{width:100%;max-width:100%;min-width:0}
+  .main-content{padding:14px 10px 86px !important;box-sizing:border-box}
+
+  .division-banner{width:100%;margin:0 0 12px !important;padding:0 2px !important;gap:5px !important}
+  .division-banner > div{min-width:0}
+  .division-label{font-size:9px !important}
+  .division-banner strong{font-size:17px !important}
+  .filter-note{font-size:9px !important;text-align:right;white-space:normal}
+
+  /* Four sources remain visible as a 2 x 2 grid on mobile */
+  .grid-4{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:9px !important;
+    width:100% !important;
+    margin:0 !important;
+  }
+  .grid-4 > .stat-card,
+  .grid-4 > .stat-card + .stat-card{
+    width:100% !important;
+    min-width:0 !important;
+    height:136px !important;
+    min-height:136px !important;
+    margin:0 !important;
+    padding:15px !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+  }
+  .stat-card .label{font-size:9px !important;line-height:1.25 !important;white-space:normal !important}
+  .stat-card .value{font-size:27px !important;line-height:1.05 !important;margin:9px 0 7px !important}
+  .stat-card .delta{font-size:9px !important;line-height:1.3 !important;white-space:normal !important}
+
+  .view{width:100%;min-width:0}
+  .ai-filter-bar,.page-filter-bar{width:100% !important;box-sizing:border-box !important}
+  .ai-filter-bar{display:flex !important;flex-direction:column !important;gap:8px !important}
+  .ai-filter-bar input,.ai-filter-bar select,.page-filter-bar select{
+    width:100% !important;min-width:0 !important;min-height:44px !important;
+    box-sizing:border-box !important;font-size:13px !important
+  }
+  .ai-card,.request-card,.worker-card{width:100% !important;max-width:100% !important;box-sizing:border-box !important;overflow:hidden !important}
+  .table-wrap,.table-container,.data-table-wrap{
+    width:100% !important;max-width:100% !important;overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch
+  }
+  button,.btn,select,input{min-height:42px}
+}
+@media (max-width:390px){
+  .main-content{padding-left:8px !important;padding-right:8px !important}
+  .grid-4{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:7px !important}
+  .grid-4 > .stat-card,.grid-4 > .stat-card + .stat-card{
+    height:124px !important;min-height:124px !important;padding:11px !important
+  }
+  .stat-card .label{font-size:8px !important}
+  .stat-card .value{font-size:23px !important;margin:7px 0 5px !important}
+  .stat-card .delta{font-size:8px !important}
+  .division-banner strong{font-size:15px !important}
+}
+@media (max-width:320px){
+  .grid-4{grid-template-columns:1fr !important}
+}
+
+
+.approval-reason-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:80;display:none;justify-content:flex-end}
+.approval-reason-backdrop.open{display:flex}
+.approval-reason-panel{width:min(430px,100%);height:100%;background:var(--bg-raised);border-left:1px solid var(--line);display:flex;flex-direction:column}
+.approval-panel-head{padding:18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}
+.not-approved-title{display:inline-block;margin-top:7px;padding:4px 8px;border-radius:4px;background:rgba(239,68,68,.14);color:#ff6b6b;font:600 10px 'IBM Plex Mono'}
+.approval-panel-body{padding:18px;overflow:auto;flex:1}
+.approval-reason-label{display:block;font:10px 'IBM Plex Mono';color:var(--text-faint);text-transform:uppercase;margin-bottom:7px}
+.approval-reason-panel textarea{width:100%;min-height:105px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:11px;font-size:13px}
+.approval-panel-actions{padding:14px 18px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.reschedule-panel{margin-top:16px;border:1px solid var(--line);border-radius:6px;padding:13px;display:none}
+.reschedule-panel.open{display:block}
+.reschedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.reschedule-grid .full{grid-column:1/-1}
+.reschedule-panel input,.reschedule-panel select{width:100%;box-sizing:border-box;min-height:40px;background:var(--bg-card);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:8px}
+.communication-event{border-left:2px solid var(--yellow);padding:10px 12px;margin:12px 0;background:rgba(255,255,255,.025)}
+.communication-event .event-title{font:600 11px 'IBM Plex Mono';color:var(--yellow)}
+.communication-event .event-body{font-size:12px;line-height:1.45;margin-top:5px}
+@media(max-width:640px){.approval-reason-panel{width:100%;border:0}.reschedule-grid{grid-template-columns:1fr}.reschedule-grid .full{grid-column:auto}}
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">DC</div>
+      <h1>Division Control<br>Dashboard</h1>
+      <p>CHENNAI DIVISION &nbsp;|&nbsp; DIVISION CONTROL</p>
+    </div>
+    <nav>
+      <div class="nav-item active" data-view="dashboard"><span class="dot"></span>Dashboard</div>
+      <div class="nav-item" data-view="ai"><span class="dot"></span>AI Suggested Work<span class="nav-count">3</span></div>
+      <div class="nav-item" data-view="requests"><span class="dot"></span>Current Requests<span class="nav-count">5</span></div>
+      <div class="nav-item" data-view="approvals"><span class="dot"></span>Approvals</div>
+      <div class="nav-item" data-view="worker"><span class="dot"></span>Worker Status</div>
+      <div class="nav-item" data-view="comm"><span class="dot"></span>Communication</div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="live"><span class="blip"></span> SECTION LIVE &mdash; NORMAL</div>
+      Shift: 06:00&ndash;14:00 &nbsp;|&nbsp; 23 Sep 2026
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="topbarTitle">Dashboard</h2>
+        <div class="sub" id="topbarSub">CHENNAI DIVISION &bull; DIVISION OVERVIEW</div>
+      </div>
+      <div class="topbar-right">
+        <select class="section-select" id="divisionSelect" onchange="changeDivision(this.value)">
+        <option value="Chennai">Division: Chennai</option>
+        <option value="Madurai">Division: Madurai</option>
+        <option value="Salem">Division: Salem</option>
+        <option value="Trichy">Division: Trichy</option>
+        <option value="Palakkad">Division: Palakkad</option>
+      </select>
+        <div class="badge-user"><span class="av">RK</span> Division Control &middot; DC</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ========== DASHBOARD VIEW ========== -->
+      <section class="view active" id="view-dashboard">
+        <div class="division-banner">
+          <div><div class="division-label">Selected Division</div><strong id="divisionName">Chennai Division</strong></div>
+          <div class="filter-note">Dashboard data follows the selected division</div>
+        </div>
+        <div class="grid grid-4">
+          <div class="card stat-card"><div class="top-line" style="background:var(--red)"></div>
+            <div class="label">OPEN REQUESTS</div><div class="value">05</div>
+            <div class="delta">2 awaiting approval</div></div>
+          <div class="card stat-card"><div class="top-line" style="background:var(--yellow)"></div>
+            <div class="label">AI SUGGESTIONS</div><div class="value">03</div>
+            <div class="delta">1 marked critical</div></div>
+          <div class="card stat-card"><div class="top-line" style="background:var(--green)"></div>
+            <div class="label">WORKERS ACCEPTED</div><div class="value">03 / 05</div>
+            <div class="delta">2 pending response</div></div>
+          <div class="card stat-card"><div class="top-line" style="background:var(--white)"></div>
+            <div class="label">DIVISION APPROVED</div><div class="value">03 / 05</div>
+            <div class="delta">1 not approved</div></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:18px; align-items:start;">
+          <div class="card">
+            <h3 class="block-title">Active Section &mdash; Junction &amp; Station Overview</h3>
+            <div class="route-line">
+              <div class="route-node origin"><div class="pin"></div><div class="name">NAGPUR JN</div><div class="kind">FROM JUNCTION</div></div>
+              <div class="route-track"><span class="marker">SEC 4B</span></div>
+              <div class="route-node dest"><div class="pin"></div><div class="name">ITARSI JN</div><div class="kind">TO JUNCTION</div></div>
+            </div>
+            <div class="kv-row"><span class="k">FROM STATION</span><span class="v">Ajni (AJNI)</span></div>
+            <div class="kv-row"><span class="k">TO STATION</span><span class="v">Narkhed (NKD)</span></div>
+            <div class="kv-row"><span class="k">WORK LOCATION</span><span class="v">KM 18.4 from Nagpur Jn</span></div>
+            <div class="kv-row"><span class="k">TRACK / LINE</span><span class="v">UP Main Line</span></div>
+          </div>
+          <div class="card">
+            <h3 class="block-title">Today's Priority Item</h3>
+            <div style="font-size:14px; font-weight:600; margin-bottom:6px;">Rail fracture risk &mdash; UP line, KM 18.4</div>
+            <p style="font-size:12.5px; color:var(--text-dim); line-height:1.6; margin-bottom:14px;">Flagged by track-monitoring sensors: rising stress readings near a fishplate joint. Recommended inspection before next goods movement.</p>
+            <div style="display:flex; gap:8px; margin-bottom:14px;">
+              <span class="badge badge-red">CRITICAL</span>
+              <span class="badge badge-yellow">DIVISION: WAITING</span>
+            </div>
+            <button class="btn btn-primary" onclick="openDashboardAI('CRITICAL','NGP - ITARSI')">Review AI Suggestion</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== AI SUGGESTED WORK VIEW ========== -->
+      <section class="view" id="view-ai">
+        <div class="ai-toolbar ai-filter-bar">
+          <input id="aiSearch" type="text" placeholder="Search AI suggested work, asset, section or KM..." oninput="filterAI()">
+          <select id="aiPriorityFilter" onchange="filterAI()">
+            <option value="all">All Priority</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+          </select>
+          <select id="aiSectionFilter" onchange="filterAI()">
+            <option value="all">All Sections</option>
+            <option value="NGP - ITARSI">NGP - ITARSI</option>
+            <option value="AJNI YARD">AJNI YARD</option>
+            <option value="NKD - KNW">NKD - KNW</option>
+          </select>
+          <span class="filter-note" id="aiResultCount">3 suggestions</span>
+        </div>
+
+        <div class="ai-card priority-critical" data-ai-priority="CRITICAL" data-ai-section="NGP - ITARSI" data-ai-search="ultrasonic rail inspection fishplate nagpur itarsi km 18.4 fishplate fp-2291">
+          <div class="ai-icon">&#9888;</div>
+          <div class="ai-body">
+            <div class="ai-head"><strong>Rail fracture risk &mdash; fishplate joint</strong><span class="badge badge-red">CRITICAL</span></div>
+            <p class="desc">Track-monitoring sensors show rising vibration stress near a fishplate joint on the UP Main Line. Model confidence 91% based on last 72 hrs of readings. Recommend ultrasonic inspection before next goods rake.</p>
+            <div class="ai-meta">
+              <span>SECTION <b>NGP &ndash; ITARSI</b></span>
+              <span>KM <b>18.4</b></span>
+              <span>ASSET <b>Fishplate FP-2291</b></span>
+              <span>DETECTED <b>23 Sep, 04:12</b></span>
+            </div>
+          </div>
+          <div class="ai-actions">
+            
+            <button class="btn btn-ghost btn-sm">Dismiss</button>
+          </div>
+        </div>
+
+        <div class="ai-card priority-high" data-ai-priority="HIGH" data-ai-section="AJNI YARD" data-ai-search="point machine lubrication overdue ajni yard km 2.1 pm-14">
+          <div class="ai-icon">&#128295;</div>
+          <div class="ai-body">
+            <div class="ai-head"><strong>Point machine lubrication overdue</strong><span class="badge badge-yellow">HIGH</span></div>
+            <p class="desc">Point machine PM-14 at Ajni yard has exceeded its scheduled lubrication interval by 9 days. Delayed maintenance increases risk of slow point operation during peak hours.</p>
+            <div class="ai-meta">
+              <span>SECTION <b>AJNI YARD</b></span>
+              <span>KM <b>2.1</b></span>
+              <span>ASSET <b>Point Machine PM-14</b></span>
+              <span>DETECTED <b>22 Sep, 19:40</b></span>
+            </div>
+          </div>
+          <div class="ai-actions">
+            
+            <button class="btn btn-ghost btn-sm">Dismiss</button>
+          </div>
+        </div>
+
+        <div class="ai-card priority-medium" data-ai-priority="MEDIUM" data-ai-section="NKD - KNW" data-ai-search="signal cable insulation check narkhed kondhali km 34.7 cable run sc-08">
+          <div class="ai-icon">&#128268;</div>
+          <div class="ai-body">
+            <div class="ai-head"><strong>Signal cable insulation check</strong><span class="badge badge-green">MEDIUM</span></div>
+            <p class="desc">Minor insulation resistance drop detected on signal cable run between Narkhed and Kondhali. No immediate risk; recommend inclusion in next planned maintenance block.</p>
+            <div class="ai-meta">
+              <span>SECTION <b>NKD &ndash; KNW</b></span>
+              <span>KM <b>34.7</b></span>
+              <span>ASSET <b>Cable Run SC-08</b></span>
+              <span>DETECTED <b>21 Sep, 11:05</b></span>
+            </div>
+          </div>
+          <div class="ai-actions">
+            
+            <button class="btn btn-ghost btn-sm">Dismiss</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== CURRENT REQUESTS VIEW ========== -->
+      <section class="view" id="view-requests">
+        <div class="filters">
+          <select id="requestStatusFilter" onchange="filterRequests()"><option value="all">All statuses</option><option value="OPEN">Open</option><option value="IN PROGRESS">In Progress</option><option value="SCHEDULED">Scheduled</option><option value="CLOSED">Closed</option></select>
+          <select id="requestPriorityFilter" onchange="filterRequests()"><option value="all">All priorities</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+          <select id="requestDivisionFilter" onchange="filterRequests()"><option value="all">All divisions</option><option>Chennai</option><option>Madurai</option><option>Salem</option><option>Trichy</option><option>Palakkad</option></select>
+          <input id="requestSearch" type="text" placeholder="Search request ID or work detail..." oninput="filterRequests()">
+        </div>
+        <div class="grid" style="grid-template-columns: 1.6fr 1fr; align-items:start;">
+          <div class="card" style="padding:0; overflow:hidden;">
+            <table id="reqTable">
+              <thead><tr><th>Req ID</th><th>Work Details</th><th>Location</th><th>Date / Time</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr class="req-row" data-id="0" data-status="OPEN" data-priority="HIGH" data-division="Chennai" data-search="WR-2291 Ultrasonic rail inspection – fishplate KM 18.4".toLowerCase()>
+                  <td class="id-cell">WR-2291</td><td>Ultrasonic rail inspection &ndash; fishplate</td><td class="mono">KM 18.4</td><td class="mono">23 Sep, 06:40</td><td><span class="badge badge-red">OPEN</span></td>
+                </tr>
+                <tr class="req-row" data-id="1" data-status="IN PROGRESS" data-priority="HIGH" data-division="Chennai" data-search="WR-2287 Point machine PM-14 lubrication KM 2.1".toLowerCase()>
+                  <td class="id-cell">WR-2287</td><td>Point machine PM-14 lubrication</td><td class="mono">KM 2.1</td><td class="mono">22 Sep, 20:10</td><td><span class="badge badge-yellow">IN PROGRESS</span></td>
+                </tr>
+                <tr class="req-row" data-id="2" data-status="SCHEDULED" data-priority="MEDIUM" data-division="Madurai" data-search="WR-2280 Signal cable insulation check KM 34.7".toLowerCase()>
+                  <td class="id-cell">WR-2280</td><td>Signal cable insulation check</td><td class="mono">KM 34.7</td><td class="mono">21 Sep, 11:30</td><td><span class="badge badge-neutral">SCHEDULED</span></td>
+                </tr>
+                <tr class="req-row" data-id="3" data-status="CLOSED" data-priority="LOW" data-division="Salem" data-search="WR-2264 Level crossing gate motor repair KM 9.6".toLowerCase()>
+                  <td class="id-cell">WR-2264</td><td>Level crossing gate motor repair</td><td class="mono">KM 9.6</td><td class="mono">20 Sep, 15:05</td><td><span class="badge badge-green">CLOSED</span></td>
+                </tr>
+                <tr class="req-row" data-id="4" data-status="CLOSED" data-priority="MEDIUM" data-division="Chennai" data-search="WR-2251 Ballast top-up – UP line dip KM 27.9".toLowerCase()>
+                  <td class="id-cell">WR-2251</td><td>Ballast top-up &ndash; UP line dip</td><td class="mono">KM 27.9</td><td class="mono">19 Sep, 09:20</td><td><span class="badge badge-green">CLOSED</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card detail-panel" id="reqDetail"><!-- filled by JS --></div>
+        </div>
+      </section>
+
+      <!-- ========== APPROVALS VIEW ========== -->
+      <section class="view" id="view-approvals">
+        <div class="page-filter-bar">
+          <select id="approvalStatusFilter" onchange="filterApprovalStatus()">
+            <option value="all">All Statuses</option>
+            <option value="APPROVED">Approved</option>
+            <option value="PENDING">Pending</option>
+            <option value="NOT APPROVED">Not Approved</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table>
+            <thead><tr data-approval-status="PENDING"><th>Req ID</th><th>Work Details</th><th>Division Control</th><th>Control Office</th></tr></thead>
+            <tbody>
+              <tr data-approval-status="PENDING"><td class="id-cell">WR-2291</td><td>Ultrasonic rail inspection &ndash; fishplate</td><td><span class="badge badge-yellow">WAITING</span></td><td><span class="badge badge-yellow">WAITING</span></td></tr>
+              <tr data-approval-status="APPROVED"><td class="id-cell">WR-2287</td><td>Point machine PM-14 lubrication</td><td><span class="badge badge-green">APPROVED</span></td><td><span class="badge badge-yellow">WAITING</span></td></tr>
+              <tr data-approval-status="APPROVED"><td class="id-cell">WR-2280</td><td>Signal cable insulation check</td><td><span class="badge badge-green">APPROVED</span></td><td><span class="badge badge-green">APPROVED</span></td></tr>
+              <tr data-approval-status="NOT APPROVED"><td class="id-cell">WR-2264</td><td>Level crossing gate motor repair</td><td><span class="badge badge-red">NOT APPROVED</span></td><td><span class="badge badge-red">NOT APPROVED</span></td></tr>
+              <tr data-approval-status="APPROVED"><td class="id-cell">WR-2251</td><td>Ballast top-up &ndash; UP line dip</td><td><span class="badge badge-green">APPROVED</span></td><td><span class="badge badge-green">APPROVED</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========== WORKER STATUS VIEW ========== -->
+      <section class="view" id="view-worker">
+        <div class="page-filter-bar">
+          <select id="workerStatusFilter" onchange="filterWorkerStatus()">
+            <option value="all">All Statuses</option>
+            <option value="ACCEPTED">Accepted</option>
+            <option value="PENDING">Pending</option>
+            <option value="NOT ACCEPTED">Not Accepted</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table>
+            <thead><tr data-worker-status="PENDING"><th>Req ID</th><th>Assigned Worker</th><th>Work Details</th><th>Acceptance</th><th>Reporting Time</th></tr></thead>
+            <tbody>
+              <tr data-worker-status="NOT ACCEPTED"><td class="id-cell">WR-2291</td><td>S. Patil &mdash; Track Gang</td><td>Ultrasonic rail inspection</td><td><span class="badge badge-red">NOT ACCEPTED</span></td><td class="mono">&mdash;</td></tr>
+              <tr data-worker-status="ACCEPTED"><td class="id-cell">WR-2287</td><td>A. Verma &mdash; Signal &amp; Telecom</td><td>Point machine lubrication</td><td><span class="badge badge-green">ACCEPTED</span></td><td class="mono">22 Sep, 20:45</td></tr>
+              <tr data-worker-status="ACCEPTED"><td class="id-cell">WR-2280</td><td>M. Joshi &mdash; Signal &amp; Telecom</td><td>Signal cable insulation check</td><td><span class="badge badge-green">ACCEPTED</span></td><td class="mono">21 Sep, 12:00</td></tr>
+              <tr data-worker-status="PENDING"><td class="id-cell">WR-2264</td><td>R. Singh &mdash; Electrical Gang</td><td>Level crossing gate motor repair</td><td><span class="badge badge-yellow">WAITING</span></td><td class="mono">&mdash;</td></tr>
+              <tr data-worker-status="ACCEPTED"><td class="id-cell">WR-2251</td><td>K. Rao &mdash; Track Gang</td><td>Ballast top-up</td><td><span class="badge badge-green">ACCEPTED</span></td><td class="mono">19 Sep, 09:50</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========== COMMUNICATION VIEW ========== -->
+      <section class="view" id="view-comm">
+        <div class="comm-shell">
+          <div class="worker-list">
+            <div class="worker-search"><input type="text" placeholder="Search workers..."></div>
+            <div class="worker-item active" data-w="0"><div class="wav">SP<span class="stat-dot" style="background:var(--red)"></span></div><div><div class="wname">S. Patil</div><div class="wrole">Track Gang &middot; WR-2291</div></div></div>
+            <div class="worker-item" data-w="1"><div class="wav">AV<span class="stat-dot" style="background:var(--green)"></span></div><div><div class="wname">A. Verma</div><div class="wrole">Signal &amp; Telecom &middot; WR-2287</div></div></div>
+            <div class="worker-item" data-w="2"><div class="wav">MJ<span class="stat-dot" style="background:var(--green)"></span></div><div><div class="wname">M. Joshi</div><div class="wrole">Signal &amp; Telecom &middot; WR-2280</div></div></div>
+            <div class="worker-item" data-w="3"><div class="wav">RS<span class="stat-dot" style="background:var(--yellow)"></span></div><div><div class="wname">R. Singh</div><div class="wrole">Electrical Gang &middot; WR-2264</div></div></div>
+            <div class="worker-item" data-w="4"><div class="wav">KR<span class="stat-dot" style="background:var(--green)"></span></div><div><div class="wname">K. Rao</div><div class="wrole">Track Gang &middot; WR-2251</div></div></div>
+          </div>
+          <div class="chat-col">
+            <div class="chat-head">
+              <div><div class="name" id="chatName">S. Patil</div><div class="role" id="chatRole">Track Gang &middot; Request WR-2291</div></div>
+              <span class="badge badge-red" id="chatStatus">NOT ACCEPTED</span>
+            </div>
+            <div class="chat-body" id="chatBody">
+              <div class="msg in">Sir, request received for KM 18.4 inspection. Checking gang availability.<div class="t">06:52</div></div>
+              <div class="msg out">Noted. This is flagged critical &mdash; please confirm acceptance by 08:00.<div class="t">06:55</div></div>
+              <div class="msg in">Understood, will confirm shortly. One member is on another job till 07:30.<div class="t">06:58</div></div>
+            </div>
+            <div class="chat-input">
+              <input type="text" id="chatInput" placeholder="Type a message to the worker...">
+              <button onclick="sendMsg()">&#10148;</button>
+            </div>
+          </div>
+        </div>
+      <div id="approvalCommunicationEvents" style="margin-top:18px"><div class="section-title">Approval / Reschedule Messages</div><div class="filter-note">Approval and reschedule messages will appear here.</div></div></section>
+
+    </div>
+  </main>
+</div>
+
+
+<div class="modal-backdrop" id="requestModal">
+  <div class="request-modal">
+    <div class="request-modal-head">
+      <div><h3>Raise Work Request</h3><p id="formSource">FROM AI SUGGESTED WORK</p></div>
+      <button class="btn btn-sm" onclick="closeRequestForm()">Close</button>
+    </div>
+    <form class="request-form" id="raiseRequestForm" onsubmit="submitRequest(event)">
+      <div><label>Request ID</label><input id="formReqId" readonly></div>
+      <div><label>Priority</label><select id="formPriority"><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+      <div class="full"><label>Work Details</label><input id="formWork" required></div>
+      <div><label>Division</label><select id="formDivision"><option>Chennai</option><option>Madurai</option><option>Salem</option><option>Trichy</option><option>Palakkad</option></select></div>
+      <div><label>Section / Location</label><input id="formLocation" required></div>
+      <div><label>From Station</label><input id="formFrom"></div>
+      <div><label>To Station</label><input id="formTo"></div>
+      <div><label>KM / Asset</label><input id="formAsset"></div>
+      <div><label>Worker / Gang</label><input id="formWorker" placeholder="Assign later if unknown"></div>
+      <div class="full"><label>Work Notes</label><textarea id="formNotes" placeholder="Add inspection findings, safety notes or instructions..."></textarea></div>
+      <div class="reschedule-box">
+        <div class="reschedule-head"><strong>Reschedule</strong><span>OPTIONAL</span></div>
+        <div class="reschedule-fields">
+          <div><label>New Date</label><input id="formDate" type="date"></div>
+          <div><label>New Time</label><input id="formTime" type="time"></div>
+          <div class="full"><label>Reason</label><input id="formReason" placeholder="Why is the work being rescheduled?"></div>
+        </div>
+      </div>
+      <div class="request-modal-foot full">
+        <button type="button" class="btn" onclick="closeRequestForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Work Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+
+<div class="approval-reason-backdrop" id="approvalReasonPanel">
+ <div class="approval-reason-panel">
+  <div class="approval-panel-head">
+   <div><h3>Approval Decision</h3><span class="not-approved-title">NOT APPROVED</span></div>
+   <button class="btn btn-sm" onclick="closeApprovalReason()">Close</button>
+  </div>
+  <div class="approval-panel-body">
+   <label class="approval-reason-label">Reason for not approving</label>
+   <textarea id="notApprovedReason" placeholder="Enter the reason..."></textarea>
+   <div class="reschedule-panel" id="reschedulePanel">
+    <strong>Reschedule</strong>
+    <div class="reschedule-grid" style="margin-top:10px">
+     <div><label>New Date</label><input id="approvalNewDate" type="date"></div>
+     <div><label>New Time</label><input id="approvalNewTime" type="time"></div>
+     <div class="full"><label>Send To</label><select id="approvalSendTo"><option>Station Master</option><option>Worker / Gang</option><option>Control Office</option></select></div>
+     <div class="full"><label>Note</label><input id="approvalRescheduleNote" placeholder="Instruction for new time"></div>
+    </div>
+   </div>
+  </div>
+  <div class="approval-panel-actions">
+   <button class="btn" onclick="closeApprovalReason()">Close</button>
+   <button class="btn btn-primary" id="submitReasonBtn" onclick="submitNotApprovedReason()">Submit Reason</button>
+  </div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- Sidebar navigation ----
+  const navItems = document.querySelectorAll('.nav-item');
+  const views = document.querySelectorAll('.view');
+  const titles = {
+    dashboard: ['Dashboard', "NAGPUR JN \u2022 SECTION OVERVIEW"],
+    ai: ['AI Suggested Work', "MODEL-FLAGGED MAINTENANCE ITEMS"],
+    requests: ['Current Requests', "ALL OPEN &amp; RECENT WORK REQUESTS".replace('&amp;','&')],
+    approvals: ['Approvals', "DIVISION CONTROL \u2022 CONTROL OFFICE"],
+    worker: ['Worker Status', "ACCEPTANCE &amp; REPORTING".replace('&amp;','&')],
+    comm: ['Communication', "DIRECT MESSAGING WITH FIELD WORKERS"]
+  };
+  function goTo(key){
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.view === key));
+    views.forEach(v => v.classList.toggle('active', v.id === 'view-' + key));
+    document.getElementById('topbarTitle').textContent = titles[key][0];
+    document.getElementById('topbarSub').textContent = key==='dashboard' ? ((document.getElementById('divisionSelect')?.value||'Chennai').toUpperCase()+' DIVISION • DIVISION OVERVIEW') : titles[key][1];
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+  navItems.forEach(item => item.addEventListener('click', () => goTo(item.dataset.view)));
+
+  // ---- Request detail panel ----
+  const requestData = [
+    { id:'WR-2291', work:'Ultrasonic rail inspection \u2013 fishplate joint', fromJn:'Nagpur Jn', toJn:'Itarsi Jn', fromSt:'Ajni', toSt:'Narkhed', km:'18.4', status:'OPEN', statusClass:'badge-red',
+      division:'WAITING', divClass:'badge-yellow', control:'WAITING', ctrlClass:'badge-yellow',
+      worker:'S. Patil (Track Gang)', accepted:'NOT ACCEPTED', accClass:'badge-red', reportTime:'\u2014' },
+    { id:'WR-2287', work:'Point machine PM-14 lubrication', fromJn:'Nagpur Jn', toJn:'Itarsi Jn', fromSt:'Ajni Yard', toSt:'Ajni Yard', km:'2.1', status:'IN PROGRESS', statusClass:'badge-yellow',
+      division:'APPROVED', divClass:'badge-green', control:'WAITING', ctrlClass:'badge-yellow',
+      worker:'A. Verma (S&T)', accepted:'ACCEPTED', accClass:'badge-green', reportTime:'22 Sep, 20:45' },
+    { id:'WR-2280', work:'Signal cable insulation check', fromJn:'Nagpur Jn', toJn:'Itarsi Jn', fromSt:'Narkhed', toSt:'Kondhali', km:'34.7', status:'SCHEDULED', statusClass:'badge-neutral',
+      division:'APPROVED', divClass:'badge-green', control:'APPROVED', ctrlClass:'badge-green',
+      worker:'M. Joshi (S&T)', accepted:'ACCEPTED', accClass:'badge-green', reportTime:'21 Sep, 12:00' },
+    { id:'WR-2264', work:'Level crossing gate motor repair', fromJn:'Nagpur Jn', toJn:'Bhusawal Jn', fromSt:'Ajni', toSt:'Wardha', km:'9.6', status:'CLOSED', statusClass:'badge-green',
+      division:'NOT APPROVED', divClass:'badge-red', control:'NOT APPROVED', ctrlClass:'badge-red',
+      worker:'R. Singh (Electrical)', accepted:'WAITING', accClass:'badge-yellow', reportTime:'\u2014' },
+    { id:'WR-2251', work:'Ballast top-up \u2013 UP line dip', fromJn:'Nagpur Jn', toJn:'Itarsi Jn', fromSt:'Narkhed', toSt:'Katol', km:'27.9', status:'CLOSED', statusClass:'badge-green',
+      division:'APPROVED', divClass:'badge-green', control:'APPROVED', ctrlClass:'badge-green',
+      worker:'K. Rao (Track Gang)', accepted:'ACCEPTED', accClass:'badge-green', reportTime:'19 Sep, 09:50' }
+  ];
+
+  function renderDetail(i){
+    const r = requestData[i];
+    document.getElementById('reqDetail').innerHTML = `
+      <h3 class="block-title">Request Detail &mdash; ${r.id}</h3>
+      <div class="kv-row"><span class="k">WORK</span><span class="v">${r.work}</span></div>
+      <div class="kv-row"><span class="k">FROM JUNCTION</span><span class="v">${r.fromJn}</span></div>
+      <div class="kv-row"><span class="k">TO JUNCTION</span><span class="v">${r.toJn}</span></div>
+      <div class="kv-row"><span class="k">FROM STATION</span><span class="v">${r.fromSt}</span></div>
+      <div class="kv-row"><span class="k">TO STATION</span><span class="v">${r.toSt}</span></div>
+      <div class="kv-row"><span class="k">WORK LOCATION</span><span class="v">KM ${r.km}</span></div>
+      <div class="kv-row"><span class="k">REQUEST STATUS</span><span class="v"><span class="badge ${r.statusClass}">${r.status}</span></span></div>
+
+      <h3 class="block-title" style="margin-top:20px;">Approval Status</h3>
+      <div class="approval-grid">
+        <div class="approval-box"><div class="who">Division Control</div><span class="badge ${r.divClass}">${r.division}</span></div>
+        <div class="approval-box"><div class="who">Control Office</div><span class="badge ${r.ctrlClass}">${r.control}</span></div>
+      </div>
+
+      <h3 class="block-title" style="margin-top:20px;">Worker Acceptance</h3>
+      <div class="kv-row"><span class="k">ASSIGNED WORKER</span><span class="v">${r.worker}</span></div>
+      <div class="kv-row"><span class="k">ACCEPTANCE</span><span class="v"><span class="badge ${r.accClass}">${r.accepted}</span></span></div>
+      <div class="kv-row"><span class="k">REPORTING TIME</span><span class="v mono">${r.reportTime}</span></div>
+
+      <button class="btn btn-sm" style="width:100%; margin-top:16px;" onclick="goTo('comm')">Message Worker</button>
+    `;
+  }
+  document.querySelectorAll('.req-row').forEach(row => {
+    row.addEventListener('click', () => {
+      document.querySelectorAll('.req-row').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      renderDetail(parseInt(row.dataset.id));
+    });
+  });
+  renderDetail(0);
+
+  // ---- Communication ----
+  const workers = [
+    { name:'S. Patil', role:'Track Gang', req:'WR-2291', status:'NOT ACCEPTED', cls:'badge-red',
+      msgs:[['in','Sir, request received for KM 18.4 inspection. Checking gang availability.','06:52'],
+            ['out','Noted. This is flagged critical \u2014 please confirm acceptance by 08:00.','06:55'],
+            ['in','Understood, will confirm shortly. One member is on another job till 07:30.','06:58']] },
+    { name:'A. Verma', role:'Signal & Telecom', req:'WR-2287', status:'ACCEPTED', cls:'badge-green',
+      msgs:[['in','Accepted the lubrication job for PM-14. Reporting at 07:00 tomorrow.','20:45'],
+            ['out','Confirmed. Tools already staged at Ajni store.','20:47']] },
+    { name:'M. Joshi', role:'Signal & Telecom', req:'WR-2280', status:'ACCEPTED', cls:'badge-green',
+      msgs:[['in','On site at Narkhed, starting cable checks now.','12:00'],
+            ['out','Thanks, update me once insulation readings are done.','12:03']] },
+    { name:'R. Singh', role:'Electrical Gang', req:'WR-2264', status:'WAITING', cls:'badge-yellow',
+      msgs:[['out','Please confirm if you can take up the LC gate motor repair at KM 9.6.','15:10']] },
+    { name:'K. Rao', role:'Track Gang', req:'WR-2251', status:'ACCEPTED', cls:'badge-green',
+      msgs:[['in','Ballast top-up completed and line checked.','10:30'],
+            ['out','Good work, closing the request.','10:32']] }
+  ];
+
+  function renderChat(i){
+    const w = workers[i];
+    document.getElementById('chatName').textContent = w.name;
+    document.getElementById('chatRole').innerHTML = `${w.role} &middot; Request ${w.req}`;
+    const statusBadge = document.getElementById('chatStatus');
+    statusBadge.textContent = w.status;
+    statusBadge.className = 'badge ' + w.cls;
+    document.getElementById('chatBody').innerHTML = w.msgs.map(m =>
+      `<div class="msg ${m[0]}">${m[1]}<div class="t">${m[2]}</div></div>`
+    ).join('');
+  }
+  document.querySelectorAll('.worker-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.worker-item').forEach(w => w.classList.remove('active'));
+      item.classList.add('active');
+      renderChat(parseInt(item.dataset.w));
+    });
+  });
+  renderChat(0);
+
+  function sendMsg(){
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    const now = new Date();
+    const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const body = document.getElementById('chatBody');
+    body.insertAdjacentHTML('beforeend', `<div class="msg out">${text.replace(/</g,'&lt;')}<div class="t">${t}</div></div>`);
+    body.scrollTop = body.scrollHeight;
+    input.value = '';
+  }
+  document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key === 'Enter') sendMsg(); });
+
+  const divisionData={Chennai:{open:5,ai:3,accepted:'03 / 05',approved:'03 / 05'},Madurai:{open:3,ai:2,accepted:'02 / 04',approved:'02 / 04'},Salem:{open:4,ai:2,accepted:'03 / 04',approved:'02 / 04'},Trichy:{open:2,ai:1,accepted:'02 / 03',approved:'01 / 03'},Palakkad:{open:3,ai:2,accepted:'02 / 03',approved:'02 / 03'}};
+  function openDashboardAI(priority, section){
+    goTo('ai');
+    const p=document.getElementById('aiPriorityFilter');
+    const sec=document.getElementById('aiSectionFilter');
+    const search=document.getElementById('aiSearch');
+    if(p)p.value=priority||'all';
+    if(sec)sec.value=section||'all';
+    if(search)search.value='';
+    filterAI();
+  }
+  function changeDivision(div){
+    const d=divisionData[div]||divisionData.Chennai;
+    const v=document.querySelectorAll('#view-dashboard .stat-card .value');
+    if(v.length>=4){v[0].textContent=String(d.open).padStart(2,'0');v[1].textContent=String(d.ai).padStart(2,'0');v[2].textContent=d.accepted;v[3].textContent=d.approved;}
+    const n=document.getElementById('divisionName');if(n)n.textContent=div+' Division';
+    filterRequests();
+  }
+  function filterRequests(){
+    const st=document.getElementById('requestStatusFilter')?.value||'all';
+    const pr=document.getElementById('requestPriorityFilter')?.value||'all';
+    const dv=document.getElementById('requestDivisionFilter')?.value||'all';
+    const q=(document.getElementById('requestSearch')?.value||'').toLowerCase().trim();
+    document.querySelectorAll('.req-row').forEach(r=>{
+      const ok=(st==='all'||r.dataset.status===st)&&(pr==='all'||r.dataset.priority===pr)&&(dv==='all'||r.dataset.division===dv)&&(!q||r.dataset.search.includes(q));
+      r.classList.toggle('hidden-row',!ok);
+    });
+  }
+  function filterAI(){
+    const searchEl=document.getElementById('aiSearch');
+    const priorityEl=document.getElementById('aiPriorityFilter');
+    const sectionEl=document.getElementById('aiSectionFilter');
+
+    const q=(searchEl?.value||'').trim().toLowerCase();
+    const priority=(priorityEl?.value||'all').trim().toUpperCase();
+    const section=(sectionEl?.value||'all').trim().toUpperCase();
+
+    let visible=0;
+
+    document.querySelectorAll('.ai-card[data-ai-priority]').forEach(card=>{
+      const cardPriority=(card.dataset.aiPriority||'').trim().toUpperCase();
+      const cardSection=(card.dataset.aiSection||'').trim().toUpperCase();
+      const searchable=(card.dataset.aiSearch||'').toLowerCase();
+
+      // If Critical is selected, ONLY Critical cards can remain visible.
+      const priorityMatch = priority==='ALL' || cardPriority===priority;
+      const sectionMatch = section==='ALL' || cardSection===section;
+      const searchMatch = !q || searchable.includes(q);
+
+      const show = priorityMatch && sectionMatch && searchMatch;
+      card.style.display = show ? '' : 'none';
+
+      if(show) visible++;
+    });
+
+    const count=document.getElementById('aiResultCount');
+    if(count){
+      count.textContent=visible+' suggestion'+(visible===1?'':'s');
+    }
+  }
+  function openRequestForm(btn){
+    const card=btn.closest('.ai-card');
+    const title=card?.querySelector('.ai-head strong')?.textContent||'AI Suggested Work';
+    const priority=card?.dataset.aiPriority||'HIGH';
+    const meta=card?.querySelector('.ai-meta')?.innerText||'';
+    document.getElementById('formReqId').value='AI-'+Math.floor(1000+Math.random()*9000);
+    document.getElementById('formPriority').value=priority;
+    document.getElementById('formWork').value=title;
+    document.getElementById('formLocation').value=(meta.match(/SECTION\s+([^\n]+)/)||[])[1]||'';
+    document.getElementById('formAsset').value=(meta.match(/ASSET\s+([^\n]+)/)||[])[1]||'';
+    document.getElementById('formSource').textContent='FROM AI SUGGESTED WORK • '+document.getElementById('formReqId').value;
+    document.getElementById('requestModal').classList.add('open');
+  }
+  function closeRequestForm(){document.getElementById('requestModal').classList.remove('open');}
+  function submitRequest(e){
+    e.preventDefault();
+    const id=document.getElementById('formReqId').value;
+    const scheduled=document.getElementById('formDate').value||document.getElementById('formTime').value;
+    const t=document.getElementById('toast');t.textContent='Work request '+id+' created'+(scheduled?' with reschedule details.':'.');t.classList.add('show');
+    closeRequestForm();setTimeout(()=>t.classList.remove('show'),3000);
+  }
+  document.getElementById('requestModal')?.addEventListener('click',e=>{if(e.target.id==='requestModal')closeRequestForm();});
+
+
+  function filterApprovalStatus(){
+    const selected=(document.getElementById('approvalStatusFilter')?.value||'all').toUpperCase();
+    const root=document.getElementById('view-approvals');
+    if(!root)return;
+    const items=root.querySelectorAll('[data-approval-status]');
+    items.forEach(item=>{
+      const status=(item.dataset.approvalStatus||'').toUpperCase();
+      item.classList.toggle('filter-hidden', selected!=='ALL' && status!==selected);
+    });
+  }
+
+  function filterWorkerStatus(){
+    const selected=(document.getElementById('workerStatusFilter')?.value||'all').toUpperCase();
+    const root=document.getElementById('view-worker');
+    if(!root)return;
+    const items=root.querySelectorAll('[data-worker-status]');
+    items.forEach(item=>{
+      const status=(item.dataset.workerStatus||'').toUpperCase();
+      item.classList.toggle('filter-hidden', selected!=='ALL' && status!==selected);
+    });
+  }
+
+
+let activeApprovalItem=null;
+function openApprovalReason(btn){
+ activeApprovalItem=btn?.closest('[data-approval-status],tr,.approval-card,.card')||null;
+ document.getElementById('notApprovedReason').value='';
+ document.getElementById('reschedulePanel').classList.remove('open');
+ document.getElementById('submitReasonBtn').textContent='Submit Reason';
+ document.getElementById('submitReasonBtn').onclick=submitNotApprovedReason;
+ document.getElementById('approvalReasonPanel').classList.add('open');
+}
+function closeApprovalReason(){document.getElementById('approvalReasonPanel').classList.remove('open')}
+function submitNotApprovedReason(){
+ const reason=document.getElementById('notApprovedReason').value.trim();
+ if(!reason){showToast('Please enter a reason.');return}
+ if(activeApprovalItem){
+  activeApprovalItem.dataset.approvalStatus='NOT APPROVED';
+  const b=activeApprovalItem.querySelector('.badge');
+  if(b){b.textContent='NOT APPROVED';b.className='badge badge-red'}
+ }
+ document.getElementById('reschedulePanel').classList.add('open');
+ document.getElementById('submitReasonBtn').textContent='Save & Send Reschedule';
+ document.getElementById('submitReasonBtn').onclick=saveApprovalReschedule;
+ showToast('Reason submitted. Add reschedule details.');
+}
+function saveApprovalReschedule(){
+ const date=document.getElementById('approvalNewDate').value,time=document.getElementById('approvalNewTime').value;
+ const to=document.getElementById('approvalSendTo').value,note=document.getElementById('approvalRescheduleNote').value.trim();
+ if(!date||!time){showToast('Please select new date and time.');return}
+ const reason=document.getElementById('notApprovedReason').value.trim();
+ addCommunicationEvent(to,'Not Approved — '+reason+' | Rescheduled to '+date+' at '+time+'. '+note,date,time);
+ closeApprovalReason();
+ showToast('Reschedule saved and message sent to '+to+'.');
+}
+function addCommunicationEvent(to,msg,date,time){
+ let box=document.getElementById('approvalCommunicationEvents');
+ if(!box){
+  box=document.createElement('div');box.id='approvalCommunicationEvents';
+  const comm=document.getElementById('view-comm');if(comm)comm.appendChild(box);
+ }
+ const e=document.createElement('div');e.className='communication-event';
+ e.innerHTML='<div class="event-title">RESCHEDULE MESSAGE • TO '+escapeHtml(to)+'</div><div class="event-body">'+escapeHtml(msg)+'</div><div class="event-body" style="color:var(--text-faint);font-size:10px">New time: '+escapeHtml(date)+' • '+escapeHtml(time)+'</div>';
+ box.appendChild(e);
+}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function showToast(m){const t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+document.getElementById('approvalReasonPanel')?.addEventListener('click',e=>{if(e.target.id==='approvalReasonPanel')closeApprovalReason()});
+
+</script>
+</body>
+</html>
+
+<style id="final-ui-fixes">
+  /* Final dashboard polish */
+  #view-dashboard .grid-4{align-items:stretch}
+  #view-dashboard .grid-4 > .stat-card{height:190px;min-height:190px}
+  #view-ai .ai-toolbar{display:flex;align-items:center;gap:10px}
+  #view-ai .ai-toolbar #aiPriorityFilter{display:block}
+</style>
+<script>
+(function(){
+  // Remove duplicate "All priority" controls outside the AI toolbar.
+  function cleanDuplicatePriority(){
+    const controls=[...document.querySelectorAll('select')].filter(x =>
+      [...x.options].some(o => (o.textContent||'').trim().toLowerCase()==='all priority')
+    );
+    const keeper=document.getElementById('aiPriorityFilter');
+    controls.forEach(x=>{
+      if(x!==keeper && x.closest('#view-ai')) x.remove();
+    });
+  }
+
+  // AI page should reflect the dashboard's selected filter/division context.
+  function syncAIFromDashboard(){
+    const aiPage=document.getElementById('view-ai');
+    if(!aiPage) return;
+    const reqPriority=document.getElementById('requestPriorityFilter');
+    const reqDivision=document.getElementById('requestDivisionFilter');
+    const aiPriority=document.getElementById('aiPriorityFilter');
+    const division=document.getElementById('divisionSelect');
+
+    // If a user selected a real priority on the dashboard/current-request controls,
+    // carry that selection to AI Suggested Work.
+    if(reqPriority && aiPriority && reqPriority.value && reqPriority.value!=='all'){
+      const v=reqPriority.value;
+      if([...aiPriority.options].some(o=>o.value===v)) aiPriority.value=v;
+    }
+    if(division && reqDivision && reqDivision.value==='all'){
+      // Selected top-level division remains the active context.
+      const d=division.value;
+      if([...reqDivision.options].some(o=>o.value===d)) reqDivision.value=d;
+    }
+    if(typeof filterAI==='function') filterAI();
+  }
+
+  // When the user changes priority on the AI page, immediately show only matching AI work.
+  window.applyAIPriority=function(v){
+    const el=document.getElementById('aiPriorityFilter');
+    if(el){el.value=v; if(typeof filterAI==='function')filterAI();}
+  };
+
+  // Hook navigation so the selected filter is carried into AI Suggested Work.
+  const oldGoTo=window.goTo;
+  if(typeof oldGoTo==='function'){
+    window.goTo=function(key){
+      if(key==='ai') syncAIFromDashboard();
+      return oldGoTo.apply(this,arguments);
+    };
+  }
+
+  // Also make dashboard "AI Suggestions" card open AI Suggested Work with the selected priority.
+  const cards=document.querySelectorAll('#view-dashboard .stat-card');
+  if(cards[1]){
+    cards[1].style.cursor='pointer';
+    cards[1].addEventListener('click',function(){
+      const priority=document.getElementById('requestPriorityFilter')?.value||'all';
+      if(typeof goTo==='function')goTo('ai');
+      const ai=document.getElementById('aiPriorityFilter');
+      if(ai && priority!=='all'){ai.value=priority; if(typeof filterAI==='function')filterAI();}
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded',cleanDuplicatePriority);
+  cleanDuplicatePriority();
+})();
+</script>
